@@ -1,6 +1,4 @@
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import java.util.List;
 
 public class JavaEwahBitmapGeneration {
 
@@ -17,18 +15,20 @@ public class JavaEwahBitmapGeneration {
     final String DATABASE_NAME = "finaltest";
     spark.sql("USE "+DATABASE_NAME);
 
-    Column ss_sold_time_sk = new Column();
-    List<Row> ss_sold_time_sk_rows = spark.sql("SELECT ss_hdemo_sk FROM store_sales").collectAsList();
-//    List<Row> ss_sold_time_sk_rows = spark.sql("SELECT s_store_name FROM store").collectAsList();
+    String tableNames = "store_sales, household_demographics, time_dim, store";
+    String whereCondition = "ss_sold_time_sk = time_dim.t_time_sk and ss_hdemo_sk = household_demographics.hd_demo_sk and ss_store_sk = s_store_sk";
 
-    int rowID = 0;
-    for (Row ss_sold_time_sk_row : ss_sold_time_sk_rows) {
-      if(!ss_sold_time_sk_row.anyNull()){
-        ss_sold_time_sk.setValue(ss_sold_time_sk_row.getInt(0),rowID);
-      }
-      rowID++;
-    }
-    System.out.println(ss_sold_time_sk.getBitMaps());
+    Column hourCol = new Column("t_hour" , tableNames, whereCondition);
+    hourCol.generateBitmaps(spark);
+    hourCol.createIndexTable(spark);
+
+    Column depCountCol = new Column("hd_dep_count" , tableNames, whereCondition);
+    depCountCol.generateBitmaps(spark);
+    depCountCol.createIndexTable(spark);
+
+    Column storeNameCol = new Column("s_store_name" , tableNames, whereCondition);
+    storeNameCol.generateBitmaps_String(spark);
+    storeNameCol.createIndexTable_String(spark);
 
     spark.stop();
   }
