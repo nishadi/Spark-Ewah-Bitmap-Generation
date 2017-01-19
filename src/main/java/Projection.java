@@ -118,7 +118,7 @@ public class Projection extends BitMaps {
     }
 
 
-    public void createIndexTable_String(SparkSession spark) {
+    public void createIndexTable_String(SparkSession spark, String tableName) {
 
         List<StringRecord> records = new ArrayList<>();
 
