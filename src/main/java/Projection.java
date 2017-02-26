@@ -9,7 +9,6 @@ import org.apache.spark.sql.SparkSession;
 public class Projection extends BitMaps {
 
     HashMap<Integer, EWAHCompressedBitmap> bitMaps;
-    HashMap<String, String> stringHashMap;
     EWAHCompressedBitmap ewahCompressedBitmap;
     String bitmapString;
     int rangeBreakPoint;
@@ -155,7 +154,7 @@ public class Projection extends BitMaps {
         } else {
             if (keyInt >= rangeBreakPoint)
                 key = ">=" + rangeBreakPoint;
-            else
+            else if (keyInt < rangeBreakPoint)
                 key = "<" + rangeBreakPoint;
             this.setValue(key, position);
         }
@@ -165,18 +164,28 @@ public class Projection extends BitMaps {
 
         this.rangeBreakPoint = rangeBreakPoint;
 
-        String query = "SELECT monotonically_increasing_id() as rowid, " + columnName
-                + " FROM store_sales, household_demographics, time_dim, store" +
-                " WHERE ss_sold_time_sk = time_dim.t_time_sk and" +
-                " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
-                " ss_store_sk = s_store_sk";
-
-        List<Row> rows = spark.sql("SELECT " + columnName + " FROM store_sales, household_demographics, time_dim, store WHERE ss_sold_time_sk = time_dim.t_time_sk and ss_hdemo_sk = household_demographics.hd_demo_sk and ss_store_sk = s_store_sk").collectAsList();
+        List<Row> rows = spark.sql(selectQuery).collectAsList();
 
         int rowID = 1;
         for (Row row : rows) {
             if (!row.anyNull()) {
                 setValueRange(row.getInt(0), rowID);
+            }
+            rowID++;
+        }
+    }
+
+
+    public void generateBitmaps_Range_Dec(SparkSession spark, int rangeBreakPoint) {
+
+        this.rangeBreakPoint = rangeBreakPoint;
+
+        List<Row> rows = spark.sql(selectQuery).collectAsList();
+
+        int rowID = 1;
+        for (Row row : rows) {
+            if (!row.anyNull()) {
+                setValueRange(row.getDecimal(0).intValue(), rowID);
             }
             rowID++;
         }

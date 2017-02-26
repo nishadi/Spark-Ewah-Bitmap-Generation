@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+
 public class JavaEwahBitmapGeneration {
 
     public static void main(String[] args) {
@@ -20,27 +21,41 @@ public class JavaEwahBitmapGeneration {
         final String DATABASE_NAME = "finaltest";
         spark.sql("USE " + DATABASE_NAME);
 
+        query52_bitmaps(spark);
+        query88_bitmaps(spark);
 
-    String columnName = "ss_quantity";
-    String query = "SELECT " + columnName
-            + " FROM store_sales, household_demographics, time_dim, store" +
-            " WHERE ss_sold_time_sk = time_dim.t_time_sk and" +
-            " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
-            " ss_store_sk = s_store_sk";
-    Projection ss_quantity = new Projection(columnName, query);
-    ss_quantity.generateBitmaps(spark);
-    ss_quantity.createIndexTable(spark, columnName + "__index");
+     // Testing for different types of queries
+        cat_num_bitmaps_range(spark);
+        cat_num_bitmaps(spark);
+        or_bitmaps_val(spark);
+        or_bitmaps_range(spark);
 
-     columnName = "t_hour";
-     query = "SELECT " + columnName
+        distinct(spark);
+        bitslices(spark);
+        spark.stop();
+    }
+
+    public static void sampleBitmapGeneration(SparkSession spark){
+        String columnName = "ss_quantity";
+        String query = "SELECT " + columnName
+                + " FROM store_sales, household_demographics, time_dim, store" +
+                " WHERE ss_sold_time_sk = time_dim.t_time_sk and" +
+                " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
+                " ss_store_sk = s_store_sk";
+        Projection ss_quantity = new Projection(columnName, query);
+        ss_quantity.generateBitmaps(spark);
+        ss_quantity.createIndexTable(spark, columnName + "__index");
+
+        columnName = "t_hour";
+        query = "SELECT " + columnName
                 + " FROM store_sales, household_demographics, time_dim, store" +
                 " WHERE ss_sold_time_sk = time_dim.t_time_sk and" +
                 " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
                 " ss_store_sk = s_store_sk";
 
-    Projection hourCol = new Projection(columnName, query);
-    hourCol.generateBitmaps(spark);
-    hourCol.createIndexTable(spark, columnName + "__index");
+        Projection hourCol = new Projection(columnName, query);
+        hourCol.generateBitmaps(spark);
+        hourCol.createIndexTable(spark, columnName + "__index");
 
         columnName = "hd_dep_count";
         query = "SELECT " + columnName
@@ -49,9 +64,9 @@ public class JavaEwahBitmapGeneration {
                 " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
                 " ss_store_sk = s_store_sk";
 
-    Projection depCountCol = new Projection(columnName, query);
-    depCountCol.generateBitmaps(spark);
-    depCountCol.createIndexTable(spark, columnName + "__index");
+        Projection depCountCol = new Projection(columnName, query);
+        depCountCol.generateBitmaps(spark);
+        depCountCol.createIndexTable(spark, columnName + "__index");
 
         columnName = "s_store_name";
         query = "SELECT " + columnName
@@ -60,27 +75,108 @@ public class JavaEwahBitmapGeneration {
                 " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
                 " ss_store_sk = s_store_sk";
 
-    Projection storeNameCol = new Projection(columnName, query);
-    storeNameCol.generateBitmaps_String(spark);
-    storeNameCol.createIndexTable_String(spark, columnName + "__index");
+        Projection storeNameCol = new Projection(columnName, query);
+        storeNameCol.generateBitmaps_String(spark);
+        storeNameCol.createIndexTable_String(spark, columnName + "__index");
 
+        columnName = "t_minute";
+        query = "SELECT " + columnName
+                + " FROM store_sales, household_demographics, time_dim, store" +
+                " WHERE ss_sold_time_sk = time_dim.t_time_sk and" +
+                " ss_hdemo_sk = household_demographics.hd_demo_sk and" +
+                " ss_store_sk = s_store_sk";
 
-//      Projection minCol = new Projection("t_minute" , tableNames, whereCondition);
-//      minCol.generateBitmaps_Range(spark, 30);
-//      minCol.createIndexTable_String(spark);
+        Projection minCol = new Projection("t_minute" ,query);
+        minCol.generateBitmaps_Range(spark, 30);
+        minCol.createIndexTable_String(spark, columnName + "__index");
 
-
-//    Projection vehicleCountCol = new Projection("hd_vehicle_count" , tableNames, whereCondition);
-//    vehicleCountCol.generateBitmaps_Range(spark, 2,4,6);
-//    vehicleCountCol.createIndexTable_String(spark);
-
-
-        query52_bitmaps(spark);
-
-        spark.stop();
     }
 
-    public static void query96_bitmaps(SparkSession spark){
+    public static void distinct(SparkSession spark){
+        String columnName = "c_birth_year";
+        String selectQuery = "SELECT " + columnName
+                + " FROM customer";
+        Projection cat_num = new Projection(columnName, selectQuery);
+        cat_num.generateBitmaps(spark);
+        cat_num.createIndexTable(spark, columnName + "__index");
+    }
+
+    public static void bitslices(SparkSession spark){
+
+        String columnName = "cs_quantity";
+        String selectQuery = "SELECT " + columnName
+                + " FROM catalog_sales";
+
+        BitSlices ss_quantity_bitslices = new BitSlices("ss_quantity", selectQuery);
+        ss_quantity_bitslices.generateBitSlices(spark);
+        ss_quantity_bitslices.createIndexTable(spark, columnName + "__index");
+    }
+    public static void cat_num_bitmaps_range(SparkSession spark){
+        String columnName = "cp_catalog_number";
+        String selectQuery = "SELECT " + columnName
+                + " FROM catalog_page, catalog_returns where catalog_page.cp_catalog_page_sk = catalog_returns.cr_catalog_page_sk";
+        Projection cat_num = new Projection(columnName, selectQuery);
+        cat_num.generateBitmaps_Range(spark, 50);
+        cat_num.createIndexTable_String(spark, columnName + "__index");
+
+         columnName = "cr_return_quantity";
+         selectQuery = "SELECT " + columnName
+                + " FROM catalog_page, catalog_returns where catalog_page.cp_catalog_page_sk = catalog_returns.cr_catalog_page_sk";
+        Projection ret = new Projection(columnName, selectQuery);
+        ret.generateBitmaps_Range(spark, 40);
+        ret.createIndexTable_String(spark, columnName + "__index");
+
+    }
+
+    public static void cat_num_bitmaps(SparkSession spark){
+        String columnName = "cp_catalog_number";
+        String selectQuery = "SELECT " + columnName
+                + " FROM catalog_page, catalog_returns where catalog_page.cp_catalog_page_sk = catalog_returns.cr_catalog_page_sk";
+        Projection cat_num = new Projection(columnName, selectQuery);
+        cat_num.generateBitmaps(spark);
+        cat_num.createIndexTable(spark, columnName + "_val__index");
+
+        columnName = "cr_return_quantity";
+        selectQuery = "SELECT " + columnName
+                + " FROM catalog_page, catalog_returns where catalog_page.cp_catalog_page_sk = catalog_returns.cr_catalog_page_sk";
+        Projection ret = new Projection(columnName, selectQuery);
+        ret.generateBitmaps(spark);
+        ret.createIndexTable(spark, columnName + "_val__index");
+
+    }
+
+    public static void or_bitmaps_val(SparkSession spark){
+        String columnName = "ss_quantity";
+        String selectQuery = "SELECT " + columnName
+                + " FROM store_sales";
+        Projection cat_num = new Projection(columnName, selectQuery);
+        cat_num.generateBitmaps(spark);
+        cat_num.createIndexTable(spark, columnName + "_val__index");
+
+         columnName = "ss_ext_sales_price";
+         selectQuery = "SELECT " + columnName
+                + " FROM store_sales";
+        Projection ret = new Projection(columnName, selectQuery);
+        ret.generateBitmaps_Decimal(spark);
+        ret.createIndexTable(spark, columnName + "_val__index");
+
+    }
+
+
+    public static void or_bitmaps_range(SparkSession spark){
+        String columnName = "ss_quantity";
+        String selectQuery = "SELECT " + columnName
+                + " FROM store_sales";
+        Projection cat_num = new Projection(columnName, selectQuery);
+        cat_num.generateBitmaps_Range(spark,50);
+        cat_num.createIndexTable_String(spark, columnName + "__index");
+
+        columnName = "ss_ext_sales_price";
+        selectQuery = "SELECT " + columnName
+                + " FROM store_sales";
+        Projection ret = new Projection(columnName, selectQuery);
+        ret.generateBitmaps_Range_Dec(spark,1000);
+        ret.createIndexTable_String(spark, columnName + "__index");
 
     }
 
@@ -130,7 +226,6 @@ public class JavaEwahBitmapGeneration {
     public static void query88_bitmaps(SparkSession spark) {
 
         // Sum query
-
         // Bit Slices on ss_ quantity
         String query = "SELECT ss_quantity"
                 + " FROM store_sales, store, customer_demographics, customer_address, date_dim" +
@@ -164,7 +259,7 @@ public class JavaEwahBitmapGeneration {
                 " ss_store_sk = s_store_sk";
         Projection cd_marital_status = new Projection(columnName, selectQuery);
         cd_marital_status.generateBitmaps_String(spark);
-        cd_marital_status.createIndexTable_String(spark);
+        cd_marital_status.createIndexTable_String(spark, columnName + "__index");
 
         columnName = "cd_education_status";
         selectQuery = "SELECT " + columnName
@@ -175,7 +270,7 @@ public class JavaEwahBitmapGeneration {
                 " ss_store_sk = s_store_sk";
         Projection cd_education_status = new Projection(columnName, selectQuery);
         cd_education_status.generateBitmaps_String(spark);
-        cd_education_status.createIndexTable_String(spark);
+        cd_education_status.createIndexTable_String(spark, columnName + "__index");
 
         columnName = "ca_country";
         selectQuery = "SELECT " + columnName
@@ -186,7 +281,7 @@ public class JavaEwahBitmapGeneration {
                 " ss_store_sk = s_store_sk";
         Projection ca_country = new Projection(columnName, selectQuery);
         ca_country.generateBitmaps_String(spark);
-        ca_country.createIndexTable_String(spark);
+        ca_country.createIndexTable_String(spark, columnName + "__index");
 
         // Between queries
         columnName = "ss_net_profit";
@@ -203,7 +298,7 @@ public class JavaEwahBitmapGeneration {
         Projection ss_net_profit = new Projection(columnName, selectQuery);
         ss_net_profit.setBetweenMap(betweenMap2);
         ss_net_profit.generateBitmaps_Decimal(spark);
-        ss_net_profit.createIndexTable_String(spark);
+        ss_net_profit.createIndexTable_String(spark, columnName + "__index");
 
 
         columnName = "ss_sales_price";
@@ -220,10 +315,9 @@ public class JavaEwahBitmapGeneration {
         Projection ss_sales_price = new Projection(columnName, selectQuery);
         ss_sales_price.setBetweenMap(betweenMap2);
         ss_sales_price.generateBitmaps_Decimal(spark);
-        ss_sales_price.createIndexTable_String(spark);
+        ss_sales_price.createIndexTable_String(spark, columnName + "__index");
 
         // In Queries
-
         columnName = "ca_state";
         selectQuery = "SELECT " + columnName
                 + " FROM store_sales, store, customer_demographics, customer_address, date_dim" +
@@ -235,6 +329,6 @@ public class JavaEwahBitmapGeneration {
         Projection ca_state = new Projection(columnName, selectQuery);
         ca_state.setInList(inList);
         ca_state.generateBitmaps_String(spark);
-        ca_state.createIndexTable_String(spark);
+        ca_state.createIndexTable_String(spark, columnName + "__index");
     }
 }

@@ -1,3 +1,6 @@
+/**
+ * Class to save the bitmap string records
+ */
 public class StringRecord {
     private String value;
     private String bitmap;
